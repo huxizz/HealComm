@@ -3,7 +3,7 @@ local libCHC = LibStub("LibClassicHealComm-1.0", true)
 OVERHEALPERCENT = 20
 
 HealComm = select(2, ...)
-HealComm.version = 2000
+HealComm.version = 2001
 
 local frames = {
 				["player"] = { bar = getglobal("PlayerFrameHealthBar"), frame = _G["PlayerFrame"] },
