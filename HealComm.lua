@@ -82,11 +82,13 @@ end
 
 function HealComm:CreateBars()
 	for unit,v in pairs(frames) do
-		v.bar.incHeal = CreateFrame("StatusBar", "IncHealBar"..unit, v.frame)
-		v.bar.incHeal:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-		v.bar.incHeal:SetMinMaxValues(0, 1)
-		v.bar.incHeal:SetValue(1)
-		v.bar.incHeal:SetStatusBarColor(0, 1, 0, 0.6)
+		if not v.bar.incHeal then
+			v.bar.incHeal = CreateFrame("StatusBar", "IncHealBar"..unit, v.frame)
+			v.bar.incHeal:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+			v.bar.incHeal:SetMinMaxValues(0, 1)
+			v.bar.incHeal:SetValue(1)
+			v.bar.incHeal:SetStatusBarColor(0, 1, 0, 0.6)
+		end
 	end
 end
 
@@ -102,7 +104,9 @@ function HealComm:UNIT_PET(unit)
 	if UnitExists(petunit) then
 		partyGUIDs[UnitGUID(petunit)] = petunit
 	end
-	self:UpdateFrame(frames[petunit].bar, petunit, currentHeals[UnitGUID("pet")] or 0)
+	if frames[petunit].bar.incHeal then
+		self:UpdateFrame(frames[petunit].bar, petunit, currentHeals[UnitGUID("pet")] or 0)
+	end
 end
 
 function HealComm:PLAYER_TARGET_CHANGED()
@@ -145,6 +149,15 @@ function HealComm:PLAYER_ROLES_ASSIGNED() --GROUP_ROSTER_UPDATE()
 			end
 			num = num + 1
 			unitframe = _G["CompactRaidFrame"..num]
+		end
+		unitframe = _G["CompactPartyFrameMember1"]
+		num = 1
+		while unitframe do
+			if unitframe.displayedUnit and UnitExists(unitframe.displayedUnit) and UnitGUID(unitframe.displayedUnit) == targetGUID then
+				self:UpdateFrame(unitframe.healthBar, unitframe.displayedUnit, amount)
+			end
+			num = num + 1
+			unitframe = _G["CompactPartyFrameMember"..num]
 		end
 		for i=1, 8 do
 			local grpHeader = "CompactRaidGroup"..i
@@ -189,8 +202,18 @@ function HealComm:UpdateIncoming(...)
 		if partyGUIDs[targetGUID] then
 			self:UpdateFrame(frames[partyGUIDs[targetGUID]].bar, partyGUIDs[targetGUID], amount)
 		end
-		if UnitInRaid("player") then
-			local frame, unitframe
+		local frame, unitframe
+		if UnitInParty("player") then
+			unitframe = _G["CompactPartyFrameMember1"]
+			num = 1
+			while unitframe do
+				if unitframe.displayedUnit and UnitExists(unitframe.displayedUnit) and UnitGUID(unitframe.displayedUnit) == targetGUID then
+					self:UpdateFrame(unitframe.healthBar, unitframe.displayedUnit, amount)
+				end
+				num = num + 1
+				unitframe = _G["CompactPartyFrameMember"..num]
+			end
+		elseif UnitInRaid("player") then
 			for k=1, NUM_RAID_PULLOUT_FRAMES do
 				frame = getglobal("RaidPullout"..k)
 				for z=1, frame.numPulloutButtons do
@@ -216,7 +239,6 @@ function HealComm:UpdateIncoming(...)
 						unitframe = _G[grpHeader.."Member"..k]
 						if unitframe and unitframe.displayedUnit and UnitExists(unitframe.displayedUnit) and UnitGUID(unitframe.displayedUnit) == targetGUID then
 							self:UpdateFrame(unitframe.healthBar, unitframe.displayedUnit, currentHeals[UnitGUID(unitframe.displayedUnit)] or 0)
-							return
 						end
 					end
 				end
