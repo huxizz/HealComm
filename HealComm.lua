@@ -57,7 +57,7 @@ end
 
 local function CompactUnitFrame_SetUnitHook(self, unit)
 	if not self.healthBar.incHeal then
-		self.healthBar.incHeal = CreateFrame("StatusBar", self:GetName().."HealthBarIncHeal" , self)
+		self.healthBar.incHeal = CreateFrame("StatusBar", nil, self)
 		self.healthBar.incHeal:SetStatusBarTexture("Interface\\RaidFrame\\Raid-Bar-Hp-Fill")
 		self.healthBar.incHeal:SetMinMaxValues(0, 1)
 		self.healthBar.incHeal:SetValue(1)
