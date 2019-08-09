@@ -7,7 +7,7 @@ Dependencies: LibStub, ChatThrottleLib
 ]]
 
 local major = "LibClassicHealComm-1.0"
-local minor = 15
+local minor = 16
 assert(LibStub, string.format("%s requires LibStub.", major))
 
 local HealComm = LibStub:NewLibrary(major, minor)
@@ -1367,6 +1367,7 @@ local function findAura(casterGUID, spellID, ...)
 end
 
 local function parseHotHeal(casterGUID, wasUpdated, spellID, tickAmount, duration, ...)
+	local spellName = GetSpellInfo(spellID)
 	if( not tickAmount or not spellID or select("#", ...) == 0 ) then return end
 	-- Retrieve the hot information
 	local stack, spellDuration, endTime = findAura(casterGUID, spellID, ...)
@@ -1375,9 +1376,9 @@ local function parseHotHeal(casterGUID, wasUpdated, spellID, tickAmount, duratio
 	if( not stack or not spellDuration or not endTime ) then return end
 
 	pendingHots[casterGUID] = pendingHots[casterGUID] or {}
-	pendingHots[casterGUID][spellID] = pendingHots[casterGUID][GetSpellInfo(spellID)] or {}
+	pendingHots[casterGUID][spellName] = pendingHots[casterGUID][spellName] or {}
 	
-	local pending = pendingHots[casterGUID][GetSpellInfo(spellID)]
+	local pending = pendingHots[casterGUID][spellName]
 	pending.duration = duration
 	pending.endTime = endTime
 	pending.stack = stack
