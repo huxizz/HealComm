@@ -7,7 +7,7 @@ Dependencies: LibStub, ChatThrottleLib
 ]]
 
 local major = "LibClassicHealComm-1.0"
-local minor = 16
+local minor = 17
 assert(LibStub, string.format("%s requires LibStub.", major))
 
 local HealComm = LibStub:NewLibrary(major, minor)
@@ -1467,15 +1467,14 @@ end
 -- Channels use tick total because the tick interval varies by haste
 -- Hots use tick interval because the total duration varies but the tick interval stays the same
 function HealComm:CHAT_MSG_ADDON(prefix, message, channel, sender)
-	if( prefix ~= COMM_PREFIX or channel ~= distribution or sender == playerName ) then return end
+	if( not commType or not spellID or not casterGUID ) then return end
 	
-	
-	local commType, castTime, spellID, arg1, arg2, arg3, arg4, arg5, arg6 = string.split(":", message)
-	local casterGUID = UnitGUID(sender)
+	local commType, castTime, spellID, arg1, arg2, arg3 = string.split(":", message)
+	local casterGUID = UnitGUID(Ambiguate(sender, "none"))
 	spellID = tonumber(spellID)
 	
-	if( not commType or not spellID or not casterGUID ) then return end
-			
+	if( prefix ~= COMM_PREFIX or channel ~= distribution or sender == playerName ) then return end
+	
 	-- New direct heal - D:<castTime>:<spellID>:<amount>:target1,target2...
 	if( commType == "D" and arg1 and arg2 ) then
 		parseDirectHeal(casterGUID, spellID, tonumber(arg1), castTime, string.split(",", arg2))
@@ -2102,6 +2101,7 @@ function HealComm:PLAYER_LOGIN()
 --	self.eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 	
 	self:ZONE_CHANGED_NEW_AREA()
+	C_ChatInfo.RegisterAddonMessagePrefix(COMM_PREFIX)
 end
 
 if( not IsLoggedIn() ) then
