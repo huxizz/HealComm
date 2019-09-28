@@ -3,7 +3,9 @@ local libCHC = LibStub("LibClassicHealComm-1.0", true)
 OVERHEALPERCENT = 20
 
 HealComm = select(2, ...)
-HealComm.version = 2001
+HealComm.version = 2002
+
+local hpBars = {}
 
 local frames = {
 				["player"] = { bar = getglobal("PlayerFrameHealthBar"), frame = _G["PlayerFrame"] },
@@ -25,13 +27,12 @@ local partyGUIDs = {
 local currentHeals = {}
 
 local function RaidPulloutButton_OnLoadHook(self)
-	local frame = getglobal(self:GetParent():GetName().."HealthBar")
-	if not frame.incheal then
-		frame.incHeal = CreateFrame("StatusBar", self:GetName().."HealthBarIncHeal" , frame)
-		frame.incHeal:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-		frame.incHeal:SetMinMaxValues(0, 1)
-		frame.incHeal:SetValue(1)
-		frame.incHeal:SetStatusBarColor(0, 1, 0, 0.6)
+	if not hpBars[self] then
+		hpBars[getglobal(self:GetParent():GetName().."HealthBar")] = CreateFrame("StatusBar", self:GetName().."HealthBarIncHeal" , self)
+		hpBars[getglobal(self:GetParent():GetName().."HealthBar")]:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+		hpBars[getglobal(self:GetParent():GetName().."HealthBar")]:SetMinMaxValues(0, 1)
+		hpBars[getglobal(self:GetParent():GetName().."HealthBar")]:SetValue(1)
+		hpBars[getglobal(self:GetParent():GetName().."HealthBar")]:SetStatusBarColor(0, 1, 0, 0.6)
 	end
 end
 
@@ -46,22 +47,22 @@ end
 hooksecurefunc("UnitFrameHealthBar_OnUpdate", UnitFrameHealthBar_OnUpdateHook) -- This needs early hooking
 
 local function CompactUnitFrame_UpdateHealthHook(self)
-	if not self.healthBar.incHeal then return end
+	if not hpBars[self.healthBar] then return end
 	HealComm:UpdateFrame(self.healthBar, self.displayedUnit, currentHeals[UnitGUID(self.displayedUnit)] or 0)
 end
 
 local function CompactUnitFrame_UpdateMaxHealthHook(self)
-	if not self.healthBar.incHeal then return end
+	if not hpBars[self.healthBar] then return end
 	HealComm:UpdateFrame(self.healthBar, self.displayedUnit, currentHeals[UnitGUID(self.displayedUnit)] or 0)
 end
 
 local function CompactUnitFrame_SetUnitHook(self, unit)
-	if not self.healthBar.incHeal then
-		self.healthBar.incHeal = CreateFrame("StatusBar", nil, self)
-		self.healthBar.incHeal:SetStatusBarTexture("Interface\\RaidFrame\\Raid-Bar-Hp-Fill")
-		self.healthBar.incHeal:SetMinMaxValues(0, 1)
-		self.healthBar.incHeal:SetValue(1)
-		self.healthBar.incHeal:SetStatusBarColor(0, 1, 0, 0.6)
+	if not hpBars[self.healthBar] then
+		hpBars[self.healthBar] = CreateFrame("StatusBar", nil, self)
+		hpBars[self.healthBar]:SetStatusBarTexture("Interface\\RaidFrame\\Raid-Bar-Hp-Fill")
+		hpBars[self.healthBar]:SetMinMaxValues(0, 1)
+		hpBars[self.healthBar]:SetValue(1)
+		hpBars[self.healthBar]:SetStatusBarColor(0, 1, 0, 0.6)
 	end
 end
 hooksecurefunc("CompactUnitFrame_SetUnit", CompactUnitFrame_SetUnitHook) -- This needs early hooking
@@ -82,12 +83,12 @@ end
 
 function HealComm:CreateBars()
 	for unit,v in pairs(frames) do
-		if not v.bar.incHeal then
-			v.bar.incHeal = CreateFrame("StatusBar", "IncHealBar"..unit, v.frame)
-			v.bar.incHeal:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-			v.bar.incHeal:SetMinMaxValues(0, 1)
-			v.bar.incHeal:SetValue(1)
-			v.bar.incHeal:SetStatusBarColor(0, 1, 0, 0.6)
+		if not hpBars[v] then
+			hpBars[v.bar] = CreateFrame("StatusBar", "IncHealBar"..unit, v.frame)
+			hpBars[v.bar]:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+			hpBars[v.bar]:SetMinMaxValues(0, 1)
+			hpBars[v.bar]:SetValue(1)
+			hpBars[v.bar]:SetStatusBarColor(0, 1, 0, 0.6)
 		end
 	end
 end
@@ -104,7 +105,7 @@ function HealComm:UNIT_PET(unit)
 	if UnitExists(petunit) then
 		partyGUIDs[UnitGUID(petunit)] = petunit
 	end
-	if frames[petunit].bar.incHeal then
+	if hpBars[frames[petunit].bar] then
 		self:UpdateFrame(frames[petunit].bar, petunit, currentHeals[UnitGUID("pet")] or 0)
 	end
 end
@@ -250,18 +251,18 @@ end
 function HealComm:UpdateFrame(frame, unit, amount)
 	local health, maxHealth = UnitHealth(unit), UnitHealthMax(unit)
 	if( amount and amount > 0 and (health < maxHealth or OVERHEALPERCENT > 0 )) and frame:IsVisible() then
-		frame.incHeal:Show()
+		hpBars[frame]:Show()
 		local healthWidth = frame:GetWidth() * (health / maxHealth)
 		local incWidth = frame:GetWidth() * (amount / maxHealth)
 		if (healthWidth + incWidth) > (frame:GetWidth() * (1+(OVERHEALPERCENT/100)) ) then
 			incWidth = frame:GetWidth() * (1+(OVERHEALPERCENT/100)) - healthWidth
 		end
-		frame.incHeal:SetWidth(incWidth)
-		frame.incHeal:SetHeight(frame:GetHeight())
-		frame.incHeal:ClearAllPoints()
-		frame.incHeal:SetPoint("TOPLEFT", frame, "TOPLEFT", healthWidth, 0)
+		hpBars[frame]:SetWidth(incWidth)
+		hpBars[frame]:SetHeight(frame:GetHeight())
+		hpBars[frame]:ClearAllPoints()
+		hpBars[frame]:SetPoint("TOPLEFT", frame, "TOPLEFT", healthWidth, 0)
 	else
-		frame.incHeal:Hide()
+		hpBars[frame]:Hide()
 	end
 end
 
